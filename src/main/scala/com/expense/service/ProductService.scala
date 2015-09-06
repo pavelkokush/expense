@@ -17,14 +17,15 @@ class ProductService {
     productRepository.create(product)
   }
 
-  def getAllProducts(): mutable.Set[model.Product] = {
+  def getAllProducts(): Set[model.Product] = {
     productRepository.getAllProducts()
   }
 
-  def getAllProducts1(from: DateTime, to: DateTime, labels: Set[Label]): mutable.Set[model.Product] = {
+  def getAllProducts(from: DateTime, to: DateTime, labels: Set[Label]): Set[model.Product] = {
     productRepository.getAllProducts(from, to, labels)
   }
+
   def getAllProductsPrice(from: DateTime, to: DateTime, labels: Set[Label]): Int = {
-    productRepository.getAllProducts(from, to, labels).map(p => p.price).sum
+    productRepository.getAllProducts(from, to, labels).toList.map(p => p.price).sum
   }
 }

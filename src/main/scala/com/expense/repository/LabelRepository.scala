@@ -1,5 +1,6 @@
 package com.expense.repository
 
+import com.expense.model
 import com.expense.model.Label
 import com.mongodb.casbah.Imports._
 import com.mongodb.casbah.{MongoCollection, MongoClient}
@@ -8,24 +9,22 @@ import scala.collection.immutable.Stream.Empty
 
 class LabelRepository {
 
-  def findAllLabels(): List[Label] = {
+  def findAllLabels(): scala.collection.mutable.Set[Label] = {
     val labelsCol: MongoCollection = getLabelCollection
-    val labels: List[Label] = Nil
-//    for (x <- labelsCol.find()) {
-//      x.get("name")
-//    }
+    val labels = scala.collection.mutable.Set[model.Label]()
+    for (label <- labelsCol.find()) {
+      labels.add(Label(label.get("name").asInstanceOf[String]))
+    }
     labels
   }
 
   def findLabel(name: String): Option[Label] = {
     val labelsCol: MongoCollection = getLabelCollection
-    var q: DBObject = ("name" $eq name)
-    val find: MongoCollection#CursorType = labelsCol.find(q)
-    if (find.size > 1){
-      throw new IllegalStateException("more than one label")
-    }
+    val query: DBObject = "name" $eq name
+    val find: MongoCollection#CursorType = labelsCol.find(query)
+    require(find.size < 2, "more than one label")
     if (find.isEmpty){
-      return Option.empty[Label];
+      return Option.empty[Label]
     }
     Option.apply(Label(find.next().get("name").asInstanceOf[String]))
   }

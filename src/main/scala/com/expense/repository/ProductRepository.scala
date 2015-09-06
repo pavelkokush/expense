@@ -3,23 +3,22 @@ package com.expense.repository
 import com.expense.model
 import com.expense.model.Label
 import com.mongodb.casbah.commons.conversions.scala.{RegisterConversionHelpers, RegisterJodaTimeConversionHelpers}
-import com.mongodb.casbah.{MongoClient, MongoCollection}
+import com.mongodb.casbah.{Imports, MongoClient, MongoCollection}
 import org.joda.time.DateTime
 
 import scala.collection.mutable
 
 
 class ProductRepository {
-  RegisterConversionHelpers() // Problem: was missing ()
+  RegisterConversionHelpers()
   RegisterJodaTimeConversionHelpers()
 
-  // Problem: was missing ()
 
-  def getAllProducts(): mutable.Set[model.Product] = {
+  def getAllProducts(): Set[model.Product] = {
     import com.mongodb.casbah.Imports._
     val productCol: MongoCollection = getProductCollection
 
-    val products1 = scala.collection.mutable.Set[model.Product]()
+    val products1 = mutable.Set[model.Product]()
 
     for (product <- productCol.find()) {
       val toList: List[Any] = product.get("labels").asInstanceOf[BasicDBList].toList
@@ -34,32 +33,33 @@ class ProductRepository {
       )
       )
     }
-    products1
+    products1.toSet
   }
 
-  def getAllProducts(from: DateTime, to: DateTime, labels: Set[Label]): mutable.Set[model.Product] = {
+  def getAllProducts(from: DateTime, to: DateTime, labels: Set[Label]): Set[model.Product] = {
     import com.mongodb.casbah.Imports._
     val productCol: MongoCollection = getProductCollection
 
-    val products1 = scala.collection.mutable.Set[model.Product]()
-    var q: DBObject = ("date" $gt from $lt to)
-//    if (labels != null) {
-//      q = q ++ ("labels" $eq  labels)
-//    }
-    for (product <- productCol.find(q)) {
-      val toList: List[Any] = product.get("labels").asInstanceOf[BasicDBList].toList
-      products1.add(new model.Product(
-        product.get("name").asInstanceOf[String],
-        product.get("price").asInstanceOf[Int],
-        product.get("date").asInstanceOf[DateTime],
-        product.get("labels").asInstanceOf[BasicDBList].toList.map {
+    val products = mutable.Set[model.Product]()
+    val query: DBObject = "date" $gt from $lt to
+    //    if (labels != null) {
+    //      q = q ++ ("labels" $eq  labels)
+    //    }
+    val find: Imports.MongoCollection#CursorType = productCol.find(query)
+    for (productRow <- find) {
+      val product = new model.Product(
+        productRow.get("name").asInstanceOf[String],
+        productRow.get("price").asInstanceOf[Int],
+        productRow.get("date").asInstanceOf[DateTime],
+        productRow.get("labels").asInstanceOf[BasicDBList].toList.map {
           case g2: BasicDBObject => Label(g2.get("name").asInstanceOf[String])
-          case _ => throw new ClassCastException
+          case _ => throw new scala.ClassCastException
         }
       )
-      )
+
+      products.add(product)
     }
-      products1
+    products.toSet
   }
 
   def getProductCollection: MongoCollection = {
