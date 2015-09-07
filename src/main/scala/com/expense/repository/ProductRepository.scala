@@ -36,15 +36,16 @@ class ProductRepository {
     products1.toSet
   }
 
-  def getAllProducts(from: DateTime, to: DateTime, labels: Set[Label]): Set[model.Product] = {
+  def getAllProducts(from: DateTime, to: DateTime, labels: Option[Set[Label]]): Set[model.Product] = {
     import com.mongodb.casbah.Imports._
     val productCol: MongoCollection = getProductCollection
 
     val products = mutable.Set[model.Product]()
-    val query: DBObject = "date" $gt from $lt to
-    //    if (labels != null) {
-    //      q = q ++ ("labels" $eq  labels)
-    //    }
+    var query: DBObject = "date" $gt from $lt to
+    labels match {
+      case Some(labels) => query = query ++ ("labels" $all labels.map(l => MongoDBObject("name" -> l.name)))
+      case None =>
+    }
     val find: Imports.MongoCollection#CursorType = productCol.find(query)
     for (productRow <- find) {
       val product = new model.Product(
@@ -61,6 +62,7 @@ class ProductRepository {
     }
     products.toSet
   }
+
 
   def getProductCollection: MongoCollection = {
     val mongoClient = MongoClient("localhost", 27017)

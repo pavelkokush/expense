@@ -82,13 +82,17 @@ trait MyService extends HttpService {
       } ~
       path("products") {
         get {
-          parameters("from", "to", "labels" ? "all") { (from, to, labels) =>
+          parameters("from", "to", "labels" ? "") { (from, to, labelsStr) =>
             val productService = new ProductService
             val format = ISODateTimeFormat.date()
+            var toSet:Option[Set[Label]] = None
+            if (labelsStr != ""){
+              toSet = Some(labelsStr.split(",").map(l => Label(l)).toSet)
+            }
             val allProducts: Set[model.Product] = productService.getAllProducts(
-              format.parseDateTime(from), format.parseDateTime(to), Set(Label(labels)))
+              format.parseDateTime(from), format.parseDateTime(to), toSet)
             val price: Int = productService.getAllProductsPrice(
-              format.parseDateTime(from), format.parseDateTime(to), Set(Label(labels)))
+              format.parseDateTime(from), format.parseDateTime(to), toSet)
             val map: Set[ProductDTO] = allProducts.map(a => ProductDTO(a.name, a.price.toString(), format.print(a.date), a.labels))
 
             var s = ""

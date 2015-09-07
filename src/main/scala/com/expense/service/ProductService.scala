@@ -21,11 +21,11 @@ class ProductService {
     productRepository.getAllProducts()
   }
 
-  def getAllProducts(from: DateTime, to: DateTime, labels: Set[Label]): Set[model.Product] = {
+  def getAllProducts(from: DateTime, to: DateTime, labels: Option[Set[Label]]): Set[model.Product] = {
     productRepository.getAllProducts(from, to, labels)
   }
 
-  def getAllProductsPrice(from: DateTime, to: DateTime, labels: Set[Label]): Int = {
+  def getAllProductsPrice(from: DateTime, to: DateTime, labels: Option[Set[Label]]): Int = {
     productRepository.getAllProducts(from, to, labels).toList.map(p => p.price).sum
   }
 }
