@@ -5,8 +5,6 @@ import com.expense.model.Label
 import com.expense.repository.ProductRepository
 import org.joda.time.DateTime
 
-import scala.collection.mutable
-
 class ProductService {
 
   val labelService = new LabelService

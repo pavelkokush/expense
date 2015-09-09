@@ -10,7 +10,8 @@ class LabelService {
     require(!isLabelExists(label.name), "label " + label.name + " is exists")
     labelRepository.createLabel(label)
   }
-  def findAllLabels(): scala.collection.mutable.Set[Label] = {
+
+  def findAllLabels(): Set[Label] = {
     labelRepository.findAllLabels()
   }
 

@@ -13,22 +13,21 @@ import spray.routing._
 
 import scala.collection.mutable
 
-object PersonJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-  implicit val PortofolioFormats = jsonFormat1(model.Label)
+object LabelJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
+  implicit val LabelFormats = jsonFormat1(model.Label)
 }
 
-object Person2JsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
+object ProductJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
+  import LabelJsonSupport._
 
-  import PersonJsonSupport._
-
-  implicit val PortofolioFormats1 = jsonFormat4(ProductDTO)
+  implicit val ProductFormats = jsonFormat4(ProductDTO)
 }
 
 object Json4sProtocol extends Json4sSupport {
   implicit def json4sFormats: Formats = DefaultFormats
 }
 
-class LabelController extends Actor with MyService {
+class LabelController extends Actor with ExpenseService {
 
   def actorRefFactory = context
 
@@ -36,7 +35,7 @@ class LabelController extends Actor with MyService {
 }
 
 
-trait MyService extends HttpService {
+trait ExpenseService extends HttpService {
 
   import Json4sProtocol._
 
@@ -55,8 +54,8 @@ trait MyService extends HttpService {
         get {
 
           val labelService = new LabelService
-          val allLabels: mutable.Set[Label] = labelService.findAllLabels()
-          val string: String = allLabels.map(l=>l.name).mkString("<br/>")
+          val allLabels: Set[Label] = labelService.findAllLabels()
+          val string: String = allLabels.map(l => l.name).mkString("<br/>")
 
           respondWithMediaType(MediaType.custom("text/html")) {
             complete {
@@ -85,8 +84,8 @@ trait MyService extends HttpService {
           parameters("from", "to", "labels" ? "") { (from, to, labelsStr) =>
             val productService = new ProductService
             val format = ISODateTimeFormat.date()
-            var toSet:Option[Set[Label]] = None
-            if (labelsStr != ""){
+            var toSet: Option[Set[Label]] = None
+            if (labelsStr != "") {
               toSet = Some(labelsStr.split(",").map(l => Label(l)).toSet)
             }
             val allProducts: Set[model.Product] = productService.getAllProducts(
