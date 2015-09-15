@@ -4,6 +4,7 @@ import akka.actor.Actor
 import com.expense.model
 import com.expense.model.{Label, Product}
 import com.expense.service.{LabelService, ProductService}
+import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.json4s.{DefaultFormats, Formats}
 import spray.http.MediaType
@@ -39,12 +40,15 @@ trait ExpenseService extends HttpService {
 
   import Json4sProtocol._
 
+  val labelService = new LabelService
+  val productService = new ProductService
+  val format = ISODateTimeFormat.date()
+
   val route = {
     path("labels") {
       post {
         entity(as[Label]) { label =>
           complete {
-            val labelService = new LabelService
             labelService.createLabel(label)
           }
         }
@@ -52,14 +56,9 @@ trait ExpenseService extends HttpService {
     } ~
       path("labels") {
         get {
-
-          val labelService = new LabelService
-          val allLabels: Set[Label] = labelService.findAllLabels()
-          val string: String = allLabels.map(l => l.name).mkString("<br/>")
-
           respondWithMediaType(MediaType.custom("text/html")) {
             complete {
-              string
+              labelService.findAllLabels().map(l => l.name).mkString("<br/>")
             }
           }
         }
@@ -67,14 +66,12 @@ trait ExpenseService extends HttpService {
       path("products") {
         post {
           entity(as[ProductDTO]) { productDTO =>
-            complete {
-              val productService = new ProductService
-              val format = ISODateTimeFormat.date()
-              val time1 = format.parseDateTime(productDTO.date)
+            val date = format.parseDateTime(productDTO.date)
 
-              val product = Product(productDTO.name, productDTO.price.replace(" ", "").toInt, time1, productDTO.labels)
-              productService.createProduct(product)
-              productService.getAllProducts().map(a => ProductDTO(a.name, a.price.toString, format.print(a.date), a.labels));
+            val product = Product(productDTO.name, productDTO.price.replace(" ", "").toInt, date, productDTO.labels)
+            productService.createProduct(product)
+            complete {
+              productService.getAllProducts().map(p => ProductDTO(p.name, p.price.toString, format.print(p.date), p.labels));
             }
           }
         }
@@ -82,28 +79,27 @@ trait ExpenseService extends HttpService {
       path("products") {
         get {
           parameters("from", "to", "labels" ? "") { (from, to, labelsStr) =>
-            val productService = new ProductService
-            val format = ISODateTimeFormat.date()
-            var toSet: Option[Set[Label]] = None
+            var labels: Option[Set[Label]] = None
             if (labelsStr != "") {
-              toSet = Some(labelsStr.split(",").map(l => Label(l)).toSet)
+              labels = Some(labelsStr.split(",").map(l => Label(l)).toSet)
             }
-            val allProducts: Set[model.Product] = productService.getAllProducts(
-              format.parseDateTime(from), format.parseDateTime(to), toSet)
-            val price: Int = productService.getAllProductsPrice(
-              format.parseDateTime(from), format.parseDateTime(to), toSet)
-            val map: Set[ProductDTO] = allProducts.map(a => ProductDTO(a.name, a.price.toString(), format.print(a.date), a.labels))
 
-            var s = ""
-            map.foreach(p => {
-              val string: String = p.labels.map(p => p.name).mkString(", ")
-              s += "<br/>" + p.name + "    " + p.price + "     " + p.date + "     " + string + "<br/>"
-            })
-            s += "</br></br>Total:" + price
+            val fromDate = format.parseDateTime(from)
+            val toDate = format.parseDateTime(to)
 
+            val allProducts = productService.getAllProducts(fromDate, toDate, labels)
+            val totalPrice = productService.getAllProductsPrice(fromDate, toDate, labels)
+
+            val productDTOs = allProducts.map(a => ProductDTO(a.name, a.price.toString, format.print(a.date), a.labels))
             respondWithMediaType(MediaType.custom("text/html")) {
               complete {
-                s
+                var result = ""
+                productDTOs.foreach(p => {
+                  val string: String = p.labels.map(p => p.name).mkString(", ")
+                  result += "<br/>" + p.name + "    " + p.price + "     " + p.date + "     " + string + "<br/>"
+                })
+                result += "</br></br>Total:" + totalPrice
+                result
               }
             }
           }

@@ -18,5 +18,4 @@ class LabelService {
   def isLabelExists(name: String): Boolean = {
     labelRepository.findLabel(name).isDefined
   }
-
 }
